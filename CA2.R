@@ -7,10 +7,95 @@
 # wherever needed for analysing and visualizing
 
 # Importing the dataset into a DF
-stroke_data <- read.csv("stroke.csv", na="")
+stroke_data <- read.csv("stroke.csv", na ="")
+
+# Converting categorical variables to factors
+stroke_data$gender = as.factor(stroke_data$gender)
+stroke_data$hypertension = as.factor(stroke_data$hypertension)
+stroke_data$heart_disease = as.factor(stroke_data$heart_disease)
+stroke_data$ever_married = as.factor(stroke_data$ever_married)
+stroke_data$work_type = as.factor(stroke_data$work_type)
+stroke_data$Residence_type = as.factor(stroke_data$Residence_type)
+stroke_data$smoking_status = as.factor(stroke_data$smoking_status)
+stroke_data$stroke = as.factor(stroke_data$stroke)
+
+# Id and Date attributes 
+# As these attributes were used to identify the patients
+# records only and does not affect the prediction, 
+# hence they can be dropped for further processing
+stroke_data <- stroke_data[, c(2,3,4,5,6,7,8,9,10,11,12)]
+str(stroke_data)
+
+# Gender attribute:
+# As there is only 1 entry with "Other" value, hence remove
+# patients who were categorized as ‘Other’ in the gender column
+stroke_data = filter(stroke_data, gender!= 'Other')
+# Convert from Female/Male to 0/1
+gender_col <- ifelse(stroke_data$gender == 'Male', 1, 0)
+stroke_data$gender <- as.factor(gender_col)
+
+# BMI attribute:
+# Removing the N/A from bmi attribute which account for 3.9% of all values
+stroke_data <- stroke_data[stroke_data$bmi != "N/A", ]
+str(stroke_data)
+# Removed 201 rows with N/A value from the data frame
+# Convert the BMI attribute from character to numeric
+stroke_data["bmi"] <- as.numeric(stroke_data$bmi)
+
+# Visualize the missing data
+# install.packages("VIM")
+library(VIM)
+missing_values <- aggr(stroke_data, prop = FALSE, numbers = TRUE)
+
+# Display the summary of missing data
+summary(missing_values)
+
+
+
+# ever_married attribute
+# Convert from Yes/No to 1/0
+married_col <- ifelse(stroke_data$ever_married=='Yes', 1, 0)
+stroke_data$ever_married <- as.factor(married_col)
+
+# Residence_type
+# convert from Urban/Rural to 1/0
+residence_type_col <- ifelse(stroke_data$Residence_type =='Urban', 1, 0)
+stroke_data$Residence_type <- as.factor(residence_type_col)
+
+# Create a new variable for diabetic status
+# 1 Normal range of Glucose level <= 140 mmol/L
+# 2 Pre-diabetes: 140 to 200 mmol/L
+# 3 Diabetic range of Glucose level > 200 mmol/L
+diabetes_col <- cut(stroke_data$avg_glucose_level,
+                    breaks = c(0, 140, 199, Inf), 
+                    labels = c(1, 2, 3), 
+                    right = FALSE,
+                    order = TRUE)
+stroke_data$diabetes <- as.factor(diabetes_col)
+str(stroke_data)
+# Create a new variable indicating bmi level
+# 1 Thin < 18.5
+# 2 Healthy >=18.5
+# 3 Fat >=25
+# 4 Obese >= 30
+bmi_col <- cut(stroke_data$bmi,
+                     breaks = c(0, 18.5, 25, 30, Inf), 
+                     labels = c(1, 2, 3, 4), 
+                     right = TRUE,
+                     order = TRUE)
+stroke_data$bmi_level <- as.factor(bmi_col)
+
+# Create a new variable for fat people
+fat_col <- cut(stroke_data$bmi,
+                      breaks = c(0, 25, Inf), 
+                      labels = c(0, 1), 
+                      right = TRUE,
+                      order = FALSE)
+stroke_data$fat <- as.factor(fat_col)
 
 # Display the first six entries from the DF
 head(stroke_data)
+str(stroke_data)
 
 # Structure of DF
 str(stroke_data)
@@ -45,13 +130,7 @@ incomplete_data
 # Display the missing data in rows
 nrow(incomplete_data)
 
-# visualize the missing data
-# install.packages("VIM")
-library(VIM)
-missing_values <- aggr(stroke_data, prop = FALSE, numbers = TRUE)
 
-# Display the summary of missing data
-summary(missing_values)
 # No missing data present in the DF
 
 # Checking if any NA is present in the DF
@@ -82,26 +161,15 @@ all_numeric <- all_numeric %>%
   )
 str(all_numeric)
 
-# 1. Id and Date attributes 
-# As these attributes were used to identify the patients
-# records only, hence they can be dropped for further processing
-new_stroke_data <- all_numeric[, c(2,3,4,5,6,7,8,9,10,11,12)]
-str(new_stroke_data)
 
-# 2. BMI attribute:
-# Removing the N/A from bmi attribute which account for 3.9% of all values
-new_stroke_data <- new_stroke_data[new_stroke_data$bmi != "N/A", ]
-str(new_stroke_data)
-# Removed 201 rows with N/A value from the data frame
+
+
 
 # Converting the BMI attribute from character to numeric
 new_stroke_data["bmi"] <- as.numeric(new_stroke_data$bmi)
 str(new_stroke_data)
 
-# 3. Gender attribute:
-# As there is only 1 entry with "Other" value which is encoded as 2, hence
-# Removing patients who were categorized as ‘Other’ in the gender column
-new_stroke_data = filter(new_stroke_data, gender!= 2)
+
 str(new_stroke_data)
 
 # 4. Residence_type attribute:
