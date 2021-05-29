@@ -20,7 +20,7 @@ stroke_data$smoking_status = as.factor(stroke_data$smoking_status)
 stroke_data$stroke = as.factor(stroke_data$stroke)
 
 # Rename the residence_type variable
-colnames(stroke_data)[colnames(stroke_data) == "Residence_type"] <- "residence_type"
+colnames(stroke_data)[colnames(stroke_data)=="Residence_type"]<-"residence_type"
 
 # ID and Date attributes 
 # As these attributes were used to identify the patients
@@ -36,8 +36,6 @@ stroke_data = stroke_data[stroke_data$gender!= 'Other',]
 # Convert from Female/Male to 0/1
 gender_col <- ifelse(stroke_data$gender == 'Male', 1, 0)
 stroke_data$gender <- as.factor(gender_col)
-
-levels(stroke_data$smoking_status)
 
 # BMI attribute:
 # Removing the N/A from bmi attribute which account for 3.9% of all values
@@ -172,52 +170,61 @@ attach(new_stroke_data)
 # stepwise regression
 
 # check correlation of variables
-stroke_matrix <- cor (new_stroke_data[1:12])
+stroke_matrix <- cor (new_stroke_data[1:14])
 # corrplot(stroke_matrix, method = "number")
 library(corrplot)
-corrplot(stroke_matrix, type = "upper")
+corrplot(stroke_matrix, type = "lower")
+
 # Initial model
 fit <- lm(age ~ 
-            hypertension + heart_disease +     
-            ever_married +  
-            bmi + stroke + diabetes_categ,
+            hypertension + heart_disease + bmi + avg_glucose_level + stroke + 
+            work_type_1 + work_type_2 + work_type_3 + work_type_4 + work_type_5+
+            smoking_status_1 + smoking_status_2 + smoking_status_3 + 
+            smoking_status_4,
           data = new_stroke_data)
 
 summary(fit)
 confint(fit)
-attach(new_stroke_data)
-# outliers
+
+# Outliers
 library("car")
-# qqplot continous variables
-qqPlot(new_stroke_data$bmi,
+attach(new_stroke_data)
+
+# qqplot continuous variables
+qqPlot(bmi,
        main = "BMI")
+qqPlot(avg_glucose_level,
+       main = "Avg_Glucose_Level")
 
 plot(fit, pch = 10, cex = 2, main="Influential observations ") 
 abline(h = 4 * mean(fit, na.rm=T), col="red")  # add cutoff line
 text(x = 1:length(fit) + 1, y = fit, 
      labels=ifelse(fit > 4 * mean(fit, na.rm = T), 
-                   names(lm),""),col="red")
+                   names(lm),""), col="red")
+
 # list outliers' value
-new_stroke_data[c(4030,2020, 181), c("bmi") ]
+new_stroke_data[c(4030, 2020), c('age', 'bmi', 'avg_glucose_level')]
+new_stroke_data[c(1145, 159), c('age', 'bmi', 'avg_glucose_level')]
 
 # remove the clearly wrong collected data
-# two rows are removed
-new_stroke_data <- new_stroke_data[-c(2020, 4030), ]
+# 4 rows are removed
+new_stroke_data <- new_stroke_data[-c(4030, 2020, 1145, 159), ]
 
 # the model improved a little
-# replace the diabetes with dummy variables
-fit <- lm(age ~ gender+ hypertension + heart_disease +     
-            ever_married + work_type + residence_type+avg_glucose_level + 
-            smoking_status + bmi + stroke ,
+
+fit <- lm(age ~ hypertension + heart_disease + bmi + avg_glucose_level +  
+            work_type_1 + work_type_2 + work_type_3 + work_type_4 +
+            stroke + ever_married +
+            smoking_status_1 + smoking_status_2 + smoking_status_3,
           data = new_stroke_data)
 summary(fit)
-# remove gender, residence_type and bmi
+# Remove bmi, smoking_status_2, smoking_status_3
 
-# replace the diabetes with dummy variables
-fit <- lm(age ~ hypertension + heart_disease +     
-            ever_married + work_type_1 + work_type_2 + work_type_3 + 
-            work_type_4 + diabetes_categ + smoking_status_1 + 
-            overweight + stroke,
+# replace with dummy variables
+fit <- lm(age ~ hypertension + heart_disease + ever_married +
+            diabetes_categ_1 + diabetes_categ_2 + stroke +
+            work_type_1 + work_type_2 + work_type_3 + work_type_4 +
+            smoking_status_1 + overweight,
           data = new_stroke_data)
 summary(fit)
 confint(fit)
@@ -241,10 +248,10 @@ sample <- sample(1:no_rows_data, size = round(0.7 * no_rows_data), replace = FAL
 training_data <- new_stroke_data[sample, ]
 testing_data <- new_stroke_data[-sample, ]
 
-fit <- lm(age ~ hypertension + heart_disease +     
-            ever_married + work_type_1 + work_type_2 + work_type_3 + 
-            work_type_4 + diabetes_categ + smoking_status_1 + 
-            overweight + stroke,
+fit <- lm(age ~ hypertension + heart_disease + ever_married +
+            diabetes_categ_1 + diabetes_categ_2 + stroke +
+            work_type_1 + work_type_2 + work_type_3 + work_type_4 +
+            smoking_status_1 + overweight,
           data = training_data)
 
 summary(fit)
@@ -258,12 +265,10 @@ qqPlot(fit, labels=row.names(new_stroke_data),
        main="Q-Q Plot")
 
 training_data["4526",]
-training_data["3922",]
+training_data["433",]
 
 fitted(fit)["4526"]
-fitted(fit)["3922"]
-
-
+fitted(fit)["433"]
 
 # histogram of the studentized
 # residuals and superimposes a normal curve, kernel-density curve, and rug plot
@@ -301,17 +306,16 @@ sample <- sample(1:no_rows_data, size = round(0.7 * no_rows_data), replace = FAL
 training_data <- new_stroke_data[sample, ]
 testing_data <- new_stroke_data[-sample, ]
 
-fit <- lm(age ~ hypertension + heart_disease +     
-            ever_married + work_type_1 + work_type_2 + work_type_3 + 
-            work_type_4 + diabetes_categ + smoking_status_1 + 
-            overweight + stroke,
+fit <- lm(age ~ hypertension + heart_disease + ever_married +
+            diabetes_categ_1 + diabetes_categ_2 + stroke +
+            work_type_1 + work_type_2 + work_type_3 + work_type_4 +
+            smoking_status_1 + overweight,
           data = training_data)
-
+summary(fit)
 outlierTest(fit)
 
-# Remove 3922nd record
-# from new_stroke_data dataset
-new_stroke_data <- subset(new_stroke_data, new_stroke_data$row_id != "3922")
+# Remove 433rd record from new_stroke_data dataset
+new_stroke_data <- subset(new_stroke_data, new_stroke_data$row_id != "433")
 
 # training & testing dataset
 set.seed(1)
@@ -321,12 +325,13 @@ sample <- sample(1:no_rows_data, size = round(0.7 * no_rows_data), replace = FAL
 training_data <- new_stroke_data[sample, ]
 testing_data <- new_stroke_data[-sample, ]
 
-fit <- lm(age ~ hypertension + heart_disease +     
-            ever_married + work_type_1 + work_type_2 + work_type_3 + 
-            work_type_4 + diabetes_categ + smoking_status_1 + 
-            overweight + stroke,
+fit <- lm(age ~ hypertension + heart_disease + ever_married +
+            diabetes_categ_1 + diabetes_categ_2 + stroke +
+            work_type_1 + work_type_2 + work_type_3 + work_type_4 +
+            smoking_status_1 + overweight,
           data = training_data)
 
+summary(fit)
 outlierTest(fit)
 
 student_fit <- rstudent(fit)
@@ -348,344 +353,164 @@ lines(density(student_fit)$x, density(student_fit)$y,
 legend("topright", legend = c("normal curve", "kernel density curve"), 
        lty = 1:2, col = c("blue", "red"), cex = 0.7)
 
-crPlots(fit)
+# CHeck for Linearity
+#crPlots(fit)
 
+# Influential observations
+cutoff <- 4/(nrow(training_data) - length(fit$coefficients) - 2)
+plot(fit, which = 4, cook.levels = cutoff)
+abline(h = cutoff, lty = 2, col = "red")
 
+library(car)
+#avPlots(fit, ask=FALSE)
 
+# Influence plot
+library(car)
+influencePlot(fit, main="Influence Plot",
+              sub="Circle size is proportional to Cook's distance")
 
+# Homoscedasticity
+ncvTest(fit)
 
+spreadLevelPlot(fit)
 
+# subset
+# many independent in this dataset are obviously adult related features,
+# such as marital status, smoking status
+# under age patients only account for a small proportion
+str(new_stroke_data[new_stroke_data$age >= 18, ])
 
+# so we adjust the dataset to adult subset
+new_stroke_data <- new_stroke_data[new_stroke_data$age >= 18, ]
+hist(new_stroke_data$age)
 
+attach(new_stroke_data)
+# Rebuild the model by taking square root
+new_stroke_data$sqrt_age <- sqrt(new_stroke_data$age)
+fit <- lm(sqrt_age ~ 
+            hypertension + heart_disease +     
+            ever_married + work_type_2 + work_type_3 + work_type_4 + 
+            smoking_status_1 + 
+            overweight + stroke + diabetes_categ_1 + diabetes_categ_2 ,
+          data = new_stroke_data)
+summary(fit)
 
-
-
-
-
-
-
-
-#*************************************************************************
-library(psych)
-# pairs.panels(new_stroke_data, 
-#              smooth = TRUE, # If TRUE, draws loess smooths  
-#              scale = FALSE, # If TRUE, scales the correlation text font  
-#              density = TRUE, # If TRUE, adds density plots and histograms  
-#              ellipses = TRUE, # If TRUE, draws ellipses   
-#              method = "spearman",# Correlation method (also "pearson" or "kendall") 
-#              pch = 21, # pch symbol   
-#              lm = FALSE, # If TRUE, plots linear fit rather than the LOESS (smoothed) fit 
-#              cor = TRUE, # If TRUE, reports correlations
-#              jiggle = FALSE, # If TRUE, data points are jittered  
-#              factor = 2, # Jittering factor  
-#              hist.col = 4, # Histograms color   
-#              stars = TRUE,
-#              ci = TRUE) # If TRUE, adds confidence intervals 
-
-# correlation table
-res <- cor(new_stroke_data)
-round(res, 2)
-# correlation table2
-# install.packages("Hmisc")
-library("Hmisc")
-res2 <- rcorr(as.matrix(new_stroke_data))
-res2
-rcorr(as.matrix(new_stroke_data), type = c("pearson","spearman"))
-res2$r
-res2$P
-# visualization the correlation
-#install.packages("corrplot")
-library(corrplot)
-corrplot(res2, 
-         type = "upper", 
-         order = "hclust", 
-         tl.col = "black", 
-         tl.srt = 45)
-
-# Insignificant correlation are crossed
-corrplot(res2$r, type="upper", order="hclust", 
-         p.mat = res2$P, sig.level = 0.01, insig = "blank")
-# Insignificant correlations are leaved blank
-corrplot(res2$r, type="upper", order="hclust", 
-         p.mat = res2$P, sig.level = 0.01, insig = "blank")
-# install.packages("PerformanceAnalytics")
-library("PerformanceAnalytics")
-# big & slow
-# chart.Correlation(new_stroke_data, histogram=TRUE, pch=19)
-
-boxplot(new_stroke_data[, c("age",  "bmi", "avg_glucose_level")])
-# generate glucose value to diabetes status
-# str(new_stroke_data)
-# model
-str(new_stroke_data)
-model <- lm(age_level ~ gender + stroke + hypertension + 
-              heart_disease + ever_married + 
-              Residence_type + diabetes_0 + diabetes_1 + diabetes_2 + 
-              bmi + work_type_1 + work_type_2 + 
-              work_type_3 + work_type_4 + 
-              smoking_status_1 + smoking_status_2 + smoking_status_3, 
-            data = new_stroke_data)
-summary(model)
-# select variables
-model <- lm(age_level ~ stroke + ever_married + 
-              Residence_type + 
-              bmi_level_0 + bmi_level_1 + bmi_level_2 + bmi_level_3, 
-            data = new_stroke_data)
-summary(model)
-# train & test
-# create training & testing data
+# training & testing dataset
 set.seed(1)
 no_rows_data <- nrow(new_stroke_data)
-# use 70% and don't use it again
-sample_data <- sample(1 : no_rows_data, size = round(0.7 * no_rows_data),
-                      replace = FALSE)
-training_data <- new_stroke_data[sample_data, ]
-testing_data <- new_stroke_data[-sample_data, ]
+sample <- sample(1:no_rows_data, size = round(0.7 * no_rows_data), replace = FALSE) 
 
-fit <- lm(age_level ~ stroke + 
-            bmi_level_0 + bmi_level_1 + bmi_level_2 + bmi_level_3, data=training_data)
-summary(fit)
-confint(fit)
-# 
+training_data <- new_stroke_data[sample, ]
+testing_data <- new_stroke_data[-sample, ]
+
+# Global validation of linear model assumption
+#library(gvlma)
+#gvmodel <- gvlma(fit)
+#summary(gvmodel)
+
+
+# Multicollinearity
 library(car)
-qqPlot(fit, 
-       labels=row.names(states), 
-       id.method="identify", 
-       simulate=TRUE, main="Q-Q Plot")
-student_fit <- rstudent(fit)
-hist(student_fit, 
-     breaks=10, 
-     freq=FALSE, 
-     xlab="Studentized Residual", 
-     main="Distribution of Errors")
+vif(fit)
 
-rug(jitter(student_fit), col="brown")
-curve(dnorm(x, mean=mean(student_fit), sd=sd(student_fit)), add=TRUE, col="blue", lwd=2)
-lines(density(student_fit)$x, density(student_fit)$y, col="red", lwd=2, lty=2)
-legend("topright", legend = c( "Normal Curve", "Kernel Density Curve"), lty=1:2, col=c("blue","red"), cex=.7)
+# We can check whether any of the variables indicate a multicollinearity problem
+# if the value > 2
+sqrt(vif(fit)) > 2
 
-outlierTest(fit)
+#Transforming variables
+library(car)
+summary(powerTransform(new_stroke_data$sqrt_age))
 
+# Comparing models using AIC
 
-# predict
-prob <- predict(model, testing_data, type = "response")
-# pred <- factor(prob > 0.5, levels = c(FALSE, TRUE))
-lr.perf <- table(testing_data$age_level, prob, dnn = c("Actual", "Predicted"))
-lr.perf
+sqrt_transform_age <- sqrt(training_data$age)
+training_data$age_sqrt <- sqrt_transform_age
 
+fit_model1 <- lm(age ~ hypertension + heart_disease +     
+                   ever_married + work_type_2 + work_type_3 + work_type_4 + 
+                   smoking_status_1 + 
+                   overweight + stroke + diabetes_categ_1 + diabetes_categ_2, data=training_data)
+fit_model2 <- lm(age_sqrt ~ hypertension + heart_disease +     
+                   ever_married + work_type_2 + work_type_3 + work_type_4 + 
+                   smoking_status_1 + 
+                   overweight + stroke + diabetes_categ_1 + diabetes_categ_2, data=training_data)
+AIC(fit_model1,fit_model2)
 
+spreadLevelPlot(fit_model2)
 
+# Comparing multiple models
+# STEPWISE REGRESSION
+library(MASS)
+fit_test <- lm(age ~ hypertension + heart_disease +     
+                 ever_married + work_type_2 + work_type_3 + work_type_4 + 
+                 smoking_status_1 + 
+                 overweight + stroke + diabetes_categ_1 + diabetes_categ_2, data=training_data)
+stepAIC(fit_test, direction="backward")
 
+#install.packages("leaps")
+library(leaps)
+leaps <-regsubsets(age ~ hypertension + heart_disease +     
+                     ever_married + work_type_2 + work_type_3 + work_type_4 + 
+                     smoking_status_1 + 
+                     overweight + stroke + diabetes_categ_1 + diabetes_categ_2, data=training_data, nbest=4)
+plot(leaps, scale="adjr2")
 
+library(MASS)
+fit_test <- lm(age_sqrt ~ hypertension + heart_disease +     
+                 ever_married + work_type_2 + work_type_3 + work_type_4 + 
+                 smoking_status_1 + 
+                 overweight + stroke + diabetes_categ_1 + diabetes_categ_2, data=training_data)
+stepAIC(fit_test, direction="backward")
 
+#library(leaps)
+leaps <-regsubsets(age_sqrt ~ hypertension + heart_disease +     
+                     ever_married + work_type_2 + work_type_3 + work_type_4 + 
+                     smoking_status_1 + 
+                     overweight + stroke + diabetes_categ_1 + diabetes_categ_2, data=training_data, nbest=4)
+plot(leaps, scale="adjr2")
 
+#examine predicted accuracy
+fit_model <- lm(age ~ hypertension + heart_disease +     
+                  ever_married + work_type_2 + work_type_4 + stroke +
+                  smoking_status_1 + diabetes_categ_1, data=training_data)
+fit_model_sqrt <- lm(age_sqrt ~ hypertension + heart_disease +     
+                       ever_married + work_type_2 + work_type_4 + stroke +
+                       smoking_status_1 + diabetes_categ_1, data=training_data)
 
+predicted_age <- predict(fit_model, testing_data)
+predicted_age_sqrt <- predict(fit_model_sqrt, testing_data)
+converted_age_sqrt <- predicted_age_sqrt ^2
 
+# make actuals_predicted dataframe.
+actuals_predictions <- data.frame(cbind(actuals = testing_data$age,
+                                        predicted = predicted_age))
+head(actuals_predictions)
 
+# make actuals_predicted dataframe for sqrt(Murder)
+actuals_predictions_sqrt <- data.frame(cbind(actuals = testing_data$age,
+                                             predicted = converted_age_sqrt))
+head(actuals_predictions_sqrt)
 
+correlation_accuracy <- cor(actuals_predictions)
+correlation_accuracy
 
+correlation_accuracy <- cor(actuals_predictions_sqrt)
+correlation_accuracy
 
+# Min - max accuracy
+min_max_accuracy <- mean(apply(actuals_predictions, 1, min) /
+                           apply(actuals_predictions, 1, max))
+min_max_accuracy
 
+# Min - max accuracy for sqrt of age
+min_max_accuracy <- mean(apply(actuals_predictions_sqrt, 1, min) /
+                           apply(actuals_predictions_sqrt, 1, max))
+min_max_accuracy
 
+#Residual Standard Error (RSE)
+sigma(fit_model)/ mean(testing_data$age)
 
-# For gender
-scatter.smooth(x = age, y = gender, 
-               main = "Age ~ Gender", 
-               xlab = "Age",
-               ylab = "Gender")
+sigma(fit_model_sqrt)/ mean(testing_data$age)
 
-# Checking Correlation
-# Values of -0.2 < x < 0.2 - Low Correlation
-cor(age, gender)
-# It is giving a correlation value = -0.30
-
-# For hypertension
-scatter.smooth(x = age, y = hypertension, 
-               main = "Age ~ hypertension", 
-               xlab = "Age",
-               ylab = "hypertension")
-# The plot shows there is    Correlation
-
-# Checking Correlation
-# Values of -0.2 < x < 0.2 - Low Correlation
-cor(age, hypertension)
-# It is giving a correlation value = 0.27
-
-# For heart_diseases
-scatter.smooth(x = age, y = heart_disease, 
-               main = "Age ~ heart_disease", 
-               xlab = "Age",
-               ylab = "heart_disease")
-# The plot shows there is    Correlation
-
-# Checking Correlation
-# Values of -0.2 < x < 0.2 - Low Correlation
-cor(age, heart_disease)
-# It is giving a correlation value = 0.25
-
-# For Ever_Married
-scatter.smooth(x = age, y = ever_married, 
-               main = "Age ~ ever_maried", 
-               xlab = "Age",
-               ylab = "Ever_Married")
-# The plot shows there is  correlation
-
-# Checking Correlation
-# Values of -0.2 < x < 0.2 - Low Correlation
-cor(age, ever_married)
-# It is giving a low correlation value = 0.68
-
-# For Work_Type
-scatter.smooth(x = age, y = work_type, 
-               main = "Age ~ work_type", 
-               xlab = "Age",
-               ylab = "Work type")
-# The plot shows there is 
-
-# Checking Correlation
-# Values of -0.2 < x < 0.2 - Low Correlation
-cor(age, work_type)
-# It is giving a medium correlation value = 0.63
-
-# For residence_type
-scatter.smooth(x = age, y = residence_type, 
-               main = "Age ~ residence_type", 
-               xlab = "Age",
-               ylab = "residence_type")
-# The plot shows there is        correlation
-
-# Checking Correlation
-# Values of -0.2 < x < 0.2 - Low Correlation
-cor(age, residence_type)
-# It is giving a correlation value = 0.01
-
-# For avg_glucose_level
-scatter.smooth(x = age, y = avg_glucose_level, 
-               main = "Age ~ avg_glucose_level", 
-               xlab = "Age",
-               ylab = "avg_glucose_level")
-
-# Checking Correlation
-# Values of -0.2 < x < 0.2 - Low Correlation
-cor(age, avg_glucose_level)
-# It is giving a correlation value = 0.23
-
-# For BMI
-scatter.smooth(x = age, y = bmi, 
-               main = "Age ~ bmi", 
-               xlab = "Age",
-               ylab = "BMI")
-# The plot shows there is  correlation
-
-# Checking Correlation
-# Values of -0.2 < x < 0.2 - Low Correlation
-cor(age, bmi)
-# It is giving a medium correlation value = 0.33
-
-# For Smoking_Status
-scatter.smooth(x = age, y = smoking_status, 
-               main = "Age ~ smoking_status", 
-               xlab = "Age",
-               ylab = "Smoking_status")
-# The plot shows there is      correlation
-
-# Checking Correlation
-# Values of -0.2 < x < 0.2 - Low Correlation
-cor(age, smoking_status)
-# It is giving a negative correlation value = -0.30
-
-# For stroke
-scatter.smooth(x = age, y = stroke, 
-               main = "Age ~ Stroke", 
-               xlab = "Age",
-               ylab = "Stroke")
-# The plot shows there is      correlation
-
-# Checking Correlation
-# Values of -0.2 < x < 0.2 - Low Correlation
-cor(age, stroke)
-# It is giving a correlation value = 0.23
-
-
-# To check the correlation for all the variables from the DF
-paste("Correlation for the Age & Gender:", cor(age, gender))
-paste("Correlation for the Age & hypertension:", cor(age, hypertension))
-paste("Correlation for the Age & heart_disease:", cor(age, heart_disease))
-paste("Correlation for the Age & ever_married:", cor(age, ever_married))
-paste("Correlation for the Age & work_type:", cor(age, work_type))
-paste("Correlation for the Age & residence_type:", cor(age, residence_type))
-paste("Correlation for the Age & avg_glucose_level:", cor(age, avg_glucose_level))
-paste("Correlation for the Age & BMI:", cor(age, bmi))
-paste("Correlation for the Age & smoking_status:", cor(age, smoking_status))
-paste("Correlation for the Age & stroke:", cor(age, stroke))
-
-new_stroke_data <- subset(new_stroke_data, select = -c(residence_type))
-
-# Structure of the DF
-str(new_stroke_data)
-head(new_stroke_data)
-attach(new_stroke_data)
-# Check the outliers
-opar <- par(no.readonly = TRUE)
-
-boxplot(age, 
-        main = "Age", 
-        sub = paste("Outlier rows: ", 
-                    boxplot.stats(age)$out))
-# There is no outlier
-
-boxplot(gender, 
-        main = "gender", 
-        sub = paste("Outlier rows: ", 
-                    boxplot.stats(gender)$out))
-# There is no outlier
-
-boxplot(hypertension, 
-        main = "hypertension", 
-        sub = paste("Outlier rows: ", 
-                    boxplot.stats(hypertension)$out))
-# There is 1 outlier
-
-boxplot(heart_disease, 
-        main = "heart_disease", 
-        sub = paste("Outlier rows: ", 
-                    boxplot.stats(heart_disease)$out))
-# There is 1 outlier
-
-boxplot(ever_married, 
-        main = "ever_married", 
-        sub = paste("Outlier rows: ", 
-                    boxplot.stats(ever_married)$out))
-# There is no outlier
-
-boxplot(work_type, 
-        main = "work_type", 
-        sub = paste("Outlier rows: ", 
-                    boxplot.stats(work_type)$out))
-# There is 0 outlier
-
-boxplot(avg_glucose_level, 
-        main = "avg_glucose_level", 
-        sub = paste("Outlier rows: ", 
-                    boxplot.stats(avg_glucose_level)$out))
-# There is  outlier
-
-boxplot(bmi, 
-        main = "bmi", 
-        sub = paste("Outlier rows: ", 
-                    boxplot.stats(bmi)$out))
-# There is  outlier
-
-boxplot(smoking_status, 
-        main = "smoking_status", 
-        sub = paste("Outlier rows: ", 
-                    boxplot.stats(smoking_status)$out))
-# There is  outlier
-
-boxplot(stroke, 
-        main = "stroke", 
-        sub = paste("Outlier rows: ", 
-                    boxplot.stats(stroke)$out))
-# There is 1 outlier
-
-par(opar)
+#Run some output with the final model
+summary(new_stroke_data)
