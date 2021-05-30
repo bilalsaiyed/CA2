@@ -917,15 +917,18 @@ legend("topright", legend = c("normal curve", "kernel density curve"),
 
 # Check for Linearity
 crPlots(fit)
-
+attach(new_stroke_data)
+par(mfrow = c(1,1))
 # Influential observations
 cutoff <- 4/(nrow(training_data) - length(fit$coefficients) - 2)
 plot(fit, which = 4, cook.levels = cutoff)
 abline(h = cutoff, lty = 2, col = "red")
 
+attach(new_stroke_data)
 library(car)
 avPlots(fit, ask=FALSE)
 
+par(mfrow = c(1,1))
 # Influence plot
 library(car)
 influencePlot(fit, main="Influence Plot",
@@ -936,23 +939,14 @@ ncvTest(fit)
 
 spreadLevelPlot(fit)
 
-# Most variables in the dataset have attributes irrelevant to children,
-# like smoking_status and ever_married, 
-# Create a subset of the dataset to exclude patients with age >= 18
-str(new_stroke_data[new_stroke_data$age >= 18, ])
-
-# Adjust the dataset
-new_stroke_data <- new_stroke_data[new_stroke_data$age >= 18, ]
-hist(new_stroke_data$age)
-
 attach(new_stroke_data)
 # Rebuild the model by taking square root
 new_stroke_data$sqrt_age <- sqrt(new_stroke_data$age)
 fit <- lm(sqrt_age ~ 
-            hypertension + heart_disease +     
-            ever_married + work_type_2 + work_type_3 + work_type_4 + 
+            hypertension + heart_disease + ever_married +   
+            work_type_1  + work_type_2 + work_type_3 + work_type_4 + 
             smoking_status_1 + overweight + stroke + 
-            diabetes_categ_1 + diabetes_categ_2 ,
+            diabetes_categ_1 + diabetes_categ_2,
           data = new_stroke_data)
 
 summary(fit)
@@ -977,19 +971,19 @@ sqrt(vif(fit)) > 2
 
 #Transforming the age variable
 library(car)
-summary(powerTransform(new_stroke_data$sqrt_age))
+summary(powerTransform(new_stroke_data$age))
 
 # Comparing models using AIC
 sqrt_transform_age <- sqrt(training_data$age)
 training_data$age_sqrt <- sqrt_transform_age
 
 fit_model1 <- lm(age ~ hypertension + heart_disease +     
-                   ever_married + work_type_2 + work_type_3 + 
+                   ever_married + work_type_1+ work_type_2 + work_type_3 + 
                    work_type_4 + smoking_status_1 + overweight + stroke + 
                    diabetes_categ_1 + diabetes_categ_2, data=training_data)
 
 fit_model2 <- lm(age_sqrt ~ hypertension + heart_disease +     
-                   ever_married + work_type_2 + work_type_3 + 
+                   ever_married + work_type_1 + work_type_2 + work_type_3 + 
                    work_type_4 + smoking_status_1 + overweight + stroke + 
                    diabetes_categ_1 + diabetes_categ_2, data=training_data)
 
@@ -1000,7 +994,7 @@ spreadLevelPlot(fit_model2)
 # STEPWISE-REGRESSION
 library(MASS)
 fit_test <- lm(age ~ hypertension + heart_disease +     
-                 ever_married + work_type_2 + work_type_3 + 
+                 ever_married + work_type_1+ work_type_2 + work_type_3 + 
                  work_type_4 + smoking_status_1 + overweight + stroke + 
                  diabetes_categ_1 + diabetes_categ_2, data=training_data)
 
@@ -1009,7 +1003,7 @@ stepAIC(fit_test, direction="backward")
 #install.packages("leaps")
 library(leaps)
 leaps <-regsubsets(age ~ hypertension + heart_disease + ever_married + 
-                     work_type_2 + work_type_3 + work_type_4 + 
+                     work_type_1+ work_type_2 + work_type_3 + work_type_4 + 
                      smoking_status_1 + overweight + stroke + 
                      diabetes_categ_1 + diabetes_categ_2, 
                    data=training_data, nbest=4)
@@ -1018,7 +1012,7 @@ plot(leaps, scale="adjr2")
 
 library(MASS)
 fit_test <- lm(age_sqrt ~ hypertension + heart_disease + ever_married + 
-                 work_type_2 + work_type_3 + work_type_4 + 
+                 work_type_1+ work_type_2 + work_type_3 + work_type_4 + 
                  smoking_status_1 + overweight + stroke + 
                  diabetes_categ_1 + diabetes_categ_2, data=training_data)
 
@@ -1026,7 +1020,7 @@ stepAIC(fit_test, direction="backward")
 
 #library(leaps)
 leaps <-regsubsets(age_sqrt ~ hypertension + heart_disease + ever_married + 
-                     work_type_2 + work_type_3 + work_type_4 + 
+                     work_type_1+ work_type_2 + work_type_3 + work_type_4 + 
                      smoking_status_1 + overweight + stroke + 
                      diabetes_categ_1 + diabetes_categ_2, 
                    data=training_data, nbest=4)
@@ -1034,14 +1028,13 @@ leaps <-regsubsets(age_sqrt ~ hypertension + heart_disease + ever_married +
 plot(leaps, scale="adjr2")
 
 # Examine predicted accuracy
-fit_model <- lm(age ~ hypertension + heart_disease +     
-                  ever_married + work_type_2 + work_type_4 + stroke +
-                  smoking_status_1 + diabetes_categ_1, data=training_data)
+fit_model <- lm(age ~ hypertension + heart_disease + ever_married + 
+                  work_type_1 + work_type_3+ work_type_4 + stroke +
+                  smoking_status_1, data=training_data)
 
 fit_model_sqrt <- lm(age_sqrt ~ hypertension + heart_disease + ever_married + 
-                       work_type_2 + work_type_4 + stroke +
-                       smoking_status_1 + diabetes_categ_1, 
-                     data=training_data)
+                       work_type_1 + work_type_3+ work_type_4 + stroke +
+                       smoking_status_1, data=training_data)
 
 predicted_age <- predict(fit_model, testing_data)
 predicted_age_sqrt <- predict(fit_model_sqrt, testing_data)
@@ -1052,7 +1045,7 @@ actuals_predictions <- data.frame(cbind(actuals = testing_data$age,
                                         predicted = predicted_age))
 head(actuals_predictions)
 
-# Make actuals_predicted dataframe for sqrt(Murder)
+# Make actuals_predicted dataframe for sqrt(age)
 actuals_predictions_sqrt <- data.frame(cbind(actuals = testing_data$age,
                                              predicted = converted_age_sqrt))
 head(actuals_predictions_sqrt)
@@ -1075,80 +1068,113 @@ min_max_accuracy
 
 # Residual Standard Error (RSE)
 sigma(fit_model)/ mean(testing_data$age)
-
 sigma(fit_model_sqrt)/ mean(testing_data$age)
 
 # Run some outputs with the final model
-
+################################################################################
+# Test-1: Predicting the age of a married person who never worked and used to 
+#         smoke previously having a previous history of hypertension and heart 
+#         diseases along with a stroke history.
+################################################################################
 df <- data.frame(hypertension = c(1), heart_disease = c(1), ever_married = c(1),
-                 work_type_2 = c(1), work_type_4 = c(0), stroke = c(1),
-                 smoking_status_1 = c(1), diabetes_categ_1 = c(1) )
+                 work_type_1 = c(0), work_type_3 = c(1),work_type_4 = c(0), 
+                 stroke = c(1),smoking_status_1 = c(1) )
 predicted_age <- predict(fit_model, df)
 predicted_age
-# predicted age = 86
+# predicted age = 78
 # Result shows that when the hypertension, heart disease is present and the 
 # person is married having govt job with smoking habit and normal diabetic status,
 # mostly the person's age would be around 86.
 
+################################################################################
+# Test-2: Predicting the age of an unmarried person who never worked and used to
+#         smoke previously having a previous history of hypertension and heart 
+#         diseases along with a stroke history.
+################################################################################
 df <- data.frame(hypertension = c(1), heart_disease = c(1), ever_married = c(0),
-                 work_type_2 = c(1), work_type_4 = c(0), stroke = c(1),
-                 smoking_status_1 = c(1), diabetes_categ_1 = c(1) )
+                 work_type_1 = c(0), work_type_3 = c(1),work_type_4 = c(0), 
+                 stroke = c(1),smoking_status_1 = c(1) )
 predicted_age <- predict(fit_model, df)
 predicted_age
-# predicted age = 70
+# predicted age = 59
 # Result shows that with similar setting as previous test but the persons marital
 # status is changed to unmarried then mostly these kind of people are in their 70s
 
+################################################################################
+# Test-3: Predicting the age of an unmarried person who never worked or smoked 
+#         previously having a previous history of hypertension and heart diseases 
+#         along with a stroke history.
+################################################################################
 df <- data.frame(hypertension = c(1), heart_disease = c(1), ever_married = c(0),
-                 work_type_2 = c(1), work_type_4 = c(0), stroke = c(1),
-                 smoking_status_1 = c(0), diabetes_categ_1 = c(1) )
+                 work_type_1 = c(0), work_type_3 = c(1),work_type_4 = c(0), 
+                 stroke = c(1),smoking_status_1 = c(0) )
 predicted_age <- predict(fit_model, df)
 predicted_age
-# predicted age = 65
+# predicted age = 54
 # Result shows that if the person is not married and working in govt firm also
 # not having smoking habit but has hypertension,heart disease, normal diabetic
 # status then statistics shows that these people fall in age group of around 65
 
+################################################################################
+# Test-4: Predicting the age of an unmarried person who never worked or smoked 
+#         previously having a previous history of heart diseases along with a 
+#         stroke history but did not suffer from hypertension.
+################################################################################
 df <- data.frame(hypertension = c(0), heart_disease = c(1), ever_married = c(0),
-                 work_type_2 = c(1), work_type_4 = c(0), stroke = c(1),
-                 smoking_status_1 = c(0), diabetes_categ_1 = c(1) )
+                 work_type_1 = c(0), work_type_3 = c(1),work_type_4 = c(0), 
+                 stroke = c(1),smoking_status_1 = c(0) )
 predicted_age <- predict(fit_model, df)
 predicted_age
-# predicted age = 57
+# predicted age = 45
 # Result shows that if the person is not married, never had smoking habit, has
 # heart disease and normal glucose levels(0-140) Also the person got heart stroke
 # in past, Falls under age group of around 57. Which clearly shows that marital
 # status , hypertension and smoking habit is more in higher age group people
 # which is above 57
 
+################################################################################
+# Test-5: Predicting the age of an unmarried person who never worked or smoked 
+#         previously and did not have a previous history of hypertension or any 
+#         heart related diseases but had a stroke before.
+################################################################################
 df <- data.frame(hypertension = c(0), heart_disease = c(0), ever_married = c(0),
-                 work_type_2 = c(1), work_type_4 = c(0), stroke = c(1), 
-                 smoking_status_1 = c(0), diabetes_categ_1 = c(1) )
+                 work_type_1 = c(0), work_type_3 = c(1),work_type_4 = c(0), 
+                 stroke = c(1),smoking_status_1 = c(0) )
 predicted_age <- predict(fit_model, df)
 predicted_age
-# predicted age = 44
+# predicted age = 30
 # Result shows that person's age would be mostly around 44 when he/she is not 
 # married, no smoking habit, never had heart disease, has normal diabetic status 
 # but got heart stroke and working in govt company. This study shows that these 
 # kind of cases are found in young people who are in their early 40s
 
+################################################################################
+# Test-6: Predicting the age of an unmarried person who never worked or smoked 
+#         previously and did not have a previous history of hypertension, stroke 
+#         or any heart related disease before.
+################################################################################
 df <- data.frame(hypertension = c(0), heart_disease = c(0), ever_married = c(0),
-                 work_type_2 = c(1), work_type_4 = c(0), stroke = c(0), 
-                 smoking_status_1 = c(0), diabetes_categ_1 = c(1) )
+                 work_type_1 = c(0), work_type_3 = c(1),work_type_4 = c(0), 
+                 stroke = c(0),smoking_status_1 = c(0) )
 predicted_age <- predict(fit_model, df)
 predicted_age
-# predicted age = 33
+# predicted age = 16
 # Lastly when result is obtained for the person who is not married with no heart 
 # disease, no heart stroke, has normal diabetic status no smoking habits and also
 # a working professional in govt firm, we can see that that these people are 
 # mostly young people age is around 33
 
+################################################################################
+# Test-7: Predicting the age of an unmarried person working in private-sector who 
+#         never smoked and does not have a previous history of hypertension, 
+#         stroke, or any heart related disease.
+################################################################################
 df <- data.frame(hypertension = c(0), heart_disease = c(0), ever_married = c(0),
-                 work_type_2 = c(0), work_type_4 = c(1), stroke = c(0), 
-                 smoking_status_1 = c(0), diabetes_categ_1 = c(1) )
+                 work_type_1 = c(0), work_type_3 = c(0),work_type_4 = c(1), 
+                 stroke = c(0),smoking_status_1 = c(0) )
 predicted_age <- predict(fit_model, df)
 predicted_age
-# predicted age = 30
+# predicted age = 28
 # With the same health status and marital status as previous test but work type 
 # changed to private sector job. Then people of age 
 # group 30 seems to work in private job more and living healthy life too.
